@@ -1,0 +1,1 @@
+llama.cpp/build/bin/main -m "$MODEL_PATH" -f "$PROMPT_FILE" -c "$CONTEXT_SIZE" -n 120 -s "$SEED" --temp 0 --repeat-penalty 1.0 --no-penalize-nl --threads -1 -ngl 33 --batch-size 32  --grammar-file "$GRAMMAR_FILE" --grp-attn-n "$GRP_ATTN_N" --grp-attn-w "$GRP_ATTN_W" --no-display-prompt --lora-scaled "$LORA" 1

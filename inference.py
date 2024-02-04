@@ -23,7 +23,7 @@ def try_download_document(document) -> Optional[str]:
      return urlretrieve(document)[0]
 
 
-def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_context_size=32768, grammar_file="", seed=123, max_group_neighbour_size=16, max_group_window_size=1024):
+def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_context_size=32768, grammar_file="", seed=123, max_group_neighbour_size=16, max_group_window_size=1024, lora=None):
     context_size = prompt_token_len + 120
     # Enable self-extend if the prompt does not fit into the models context size
     if context_size > model_context_size: 
@@ -42,7 +42,12 @@ def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_con
         "GRP_ATTN_N": str(group_neighbour_size),
         "GRP_ATTN_W": str(group_window_size),
     })
-    result = check_output(["sh", "inference-llamacpp.sh"], env=env_vars)
+    if lora:
+        env_vars["LORA"] = lora
+        script = "inference-llamacpp-lora.sh"
+    else:
+        script = "inference-llamacpp.sh"
+    result = check_output(["sh", script], env=env_vars)
     output = result.decode()
     # Strip eos token if printed
     if output[-len(eos):] == eos:
@@ -51,7 +56,7 @@ def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_con
     return Emissions.model_validate_json(output, strict=True)
 
 
-def extract_emissions(document, model_path, prompt_template, model_context_size=32768, prompt_output_path=None, grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=8, max_group_window_size=2048) -> Emissions:
+def extract_emissions(document, model_path, prompt_template, model_context_size=32768, prompt_output_path=None, grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=8, max_group_window_size=2048, lora=None) -> Emissions:
     if not isfile(document):
         document = try_download_document(document)
         if document is None:
@@ -68,6 +73,9 @@ def extract_emissions(document, model_path, prompt_template, model_context_size=
             prompt.append(loads(line))
 
     user_message = extract_chunks_from_document(document, mode=extraction_mode)
+    if not user_message:
+        emissions = Emissions(scope_1=None, scope_2=None, scope_3=None, sources=[])
+        return emissions
     prompt.append({"role": "user", "content": user_message})
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     prompt_text = tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
@@ -80,7 +88,7 @@ def extract_emissions(document, model_path, prompt_template, model_context_size=
     else:
         prompt_file = open(prompt_output_path, "w")
     with prompt_file:
-        prompt_file.write(prompt_text)
+        prompt_file.write(prompt_text + "\n")
 
     prompt_tokenized = tokenizer.apply_chat_template(prompt, return_tensors="np")
     token_length = prompt_tokenized.shape[1]
@@ -88,7 +96,7 @@ def extract_emissions(document, model_path, prompt_template, model_context_size=
     if "QWenTokenizer" in str(type(tokenizer)):
         token_length = int(token_length * 1.2)  # HF and llama.cpp use tokenizers that produce different lengths for QWen
         eos_token = "[PAD151643]"  # llama.cpp tokenizer uses this as eos
-    emissions = inference_llamacpp(token_length, prompt_output_path, model_path, eos_token, model_context_size=model_context_size, grammar_file=grammar_path, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size)
+    emissions = inference_llamacpp(token_length, prompt_output_path, model_path, eos_token, model_context_size=model_context_size, grammar_file=grammar_path, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size, lora=lora)
     return emissions
 
 def main():
@@ -98,13 +106,14 @@ def main():
     parser.add_argument("--model_path", default="models/Mistral-7B-Instruct-v0.2", help="Path to a directory containing the GGUF model and huggingface tokenizer. Mutually exclusive with --model.")
     parser.add_argument("--model_context_size", default=32768, help="The context size of the model. Can be retrieved by inspecting the specific model or config files. Must be used together with --model_path. Mutually exclusive with --model.")
     parser.add_argument("--model", default="", help=f"Given the model name, loads the model_path and model_context_size automatically from the {model_config_path} file. Mutually exclusive with --model_path and --model_context_size.")
-    parser.add_argument("--prompt_template", default="prompts/templates/simple.jsonl")
+    parser.add_argument("--prompt_template", default="prompts/templates/simple.jsonl", help="The prompt template in ChatML format to use for prompt generation.")
     parser.add_argument("--prompt_output_path", default="", help="If specified, saves the input prompt to this file")
     parser.add_argument("--grammars_dir", default="grammars", help="Grammar is stored in this dir. Set to /tmp if persistance not needed.")
-    parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"])
+    parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"], help="Whether to extract plain text or semi-semantic xhtml from document pages.")
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--max_group_neighbour_size", type=int, default=8)
     parser.add_argument("--max_group_window_size", type=int, default=2048)
+    parser.add_argument("--lora", default="", help="Path to a LoRA to use together with the model.")
     args = parser.parse_args()
 
     if args.model:
@@ -116,7 +125,7 @@ def main():
             "context_size": args.model_context_size,
         }
 
-    emissions = extract_emissions(document=args.document, model_path=model_config["model_path"], prompt_template=args.prompt_template, model_context_size=model_config["context_size"], prompt_output_path=args.prompt_output_path, grammars_dir=args.grammars_dir, extraction_mode=args.extraction_mode, seed=args.seed, max_group_neighbour_size=args.max_group_neighbour_size, max_group_window_size=args.max_group_window_size)
+    emissions = extract_emissions(document=args.document, model_path=model_config["model_path"], prompt_template=args.prompt_template, model_context_size=model_config["context_size"], prompt_output_path=args.prompt_output_path, grammars_dir=args.grammars_dir, extraction_mode=args.extraction_mode, seed=args.seed, max_group_neighbour_size=args.max_group_neighbour_size, max_group_window_size=args.max_group_window_size, lora=args.lora)
     print(emissions.model_dump_json())
 
 

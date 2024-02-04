@@ -11,9 +11,11 @@ from pydantic_types import Emissions
 from inference import extract_emissions
 
 
-def process_documents(documents_dir="pdfs", prompt_template="prompts/templates/simple.jsonl", model_path="models/Mistral-7B-Instruct-v0.2", model_context_size=32768, outputs_dir="outputs", generated_prompts_dir="prompts/generated", grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=64, max_group_window_size=1024):
+def process_documents(documents_dir="pdfs", prompt_template="prompts/templates/simple.jsonl", model_path="models/Mistral-7B-Instruct-v0.2", model_context_size=32768, outputs_dir="outputs", generated_prompts_dir="prompts/generated", grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=64, max_group_window_size=1024, lora=None):
     model_name = normpath(model_path).split('/')[-1]
     output_dir = join(outputs_dir, model_name)
+    if lora:
+        output_dir += "-lora"
     generated_prompt_dir = join(generated_prompts_dir, model_name)
     makedirs(output_dir, exist_ok=True)
     makedirs(generated_prompt_dir, exist_ok=True)
@@ -30,7 +32,7 @@ def process_documents(documents_dir="pdfs", prompt_template="prompts/templates/s
         
         prompt_output_path = join(generated_prompt_dir, f"{uid}.txt")
         try:
-            emissions = extract_emissions(document=document, model_path=model_path, prompt_template=prompt_template, model_context_size=model_context_size, prompt_output_path=prompt_output_path, grammars_dir=grammars_dir, extraction_mode=extraction_mode, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size)
+            emissions = extract_emissions(document=document, model_path=model_path, prompt_template=prompt_template, model_context_size=model_context_size, prompt_output_path=prompt_output_path, grammars_dir=grammars_dir, extraction_mode=extraction_mode, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size, lora=lora)
             output_json = emissions.model_dump_json()
         except:
             print_exc()
@@ -48,14 +50,15 @@ def main():
     parser.add_argument("--model_path", default="models/Mistral-7B-Instruct-v0.2", help="Path to a directory containing the GGUF model and huggingface tokenizer. Mutually exclusive with --model.")
     parser.add_argument("--model_context_size", default=32768, help="The context size of the model. Can be retrieved by inspecting the specific model or config files. Must be used together with --model_path. Mutually exclusive with --model.")
     parser.add_argument("--model", default="", help=f"Given the model name, loads the model_path and model_context_size automatically from the {model_config_path} file. Mutually exclusive with --model_path and --model_context_size.")
-    parser.add_argument("--prompt_template", default="prompts/templates/simple.jsonl")
+    parser.add_argument("--prompt_template", default="prompts/templates/simple.jsonl", help="The prompt template in ChatML format to use for prompt generation.")
     parser.add_argument("--output_dir", default="outputs", help="saves the extraction output JSON files to this dir")
     parser.add_argument("--prompt_output_dir", default="prompts/generated", help="Saves the input prompts to this dir")
     parser.add_argument("--grammars_dir", default="grammars", help="Grammar is stored in this dir. Set to /tmp if persistance not needed.")
-    parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"])
+    parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"], help="Whether to extract plain text or semi-semantic xhtml from document pages.")
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--max_group_neighbour_size", type=int, default=8)
     parser.add_argument("--max_group_window_size", type=int, default=2048)
+    parser.add_argument("--lora", default="", help="Path to a LoRA to use together with the model.")
     args = parser.parse_args()
     if args.model:
         with open(model_config_path, "r") as json_file:
@@ -66,7 +69,7 @@ def main():
             "context_size": args.model_context_size,
         }
 
-    process_documents(documents_dir=args.documents_dir, model_path=model_config["model_path"], prompt_template=args.prompt_template, model_context_size=model_config["context_size"], outputs_dir=args.output_dir, generated_prompts_dir=args.prompt_output_dir, grammars_dir=args.grammars_dir, extraction_mode=args.extraction_mode, seed=args.seed, max_group_neighbour_size=args.max_group_neighbour_size, max_group_window_size=args.max_group_window_size)
+    process_documents(documents_dir=args.documents_dir, model_path=model_config["model_path"], prompt_template=args.prompt_template, model_context_size=model_config["context_size"], outputs_dir=args.output_dir, generated_prompts_dir=args.prompt_output_dir, grammars_dir=args.grammars_dir, extraction_mode=args.extraction_mode, seed=args.seed, max_group_neighbour_size=args.max_group_neighbour_size, max_group_window_size=args.max_group_window_size, lora=args.lora)
 
 
 if __name__ == "__main__":

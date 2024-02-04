@@ -10,7 +10,7 @@ class Emissions(BaseModel):
      scope_1: Optional[int]
      scope_2: Optional[int]
      scope_3: Optional[int]
-     sources: conset(int, min_length=1, max_length=5)
+     sources: conset(int, min_length=0, max_length=5)
 
 
 def pydantic_model_to_grammar(model_type: Type[BaseModel]):

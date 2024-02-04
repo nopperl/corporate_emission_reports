@@ -26,12 +26,12 @@ def evaluate_key_for_model(pred_file, gt_file, key="scope_1", mode="strict"):
     both_na_mask = np.isnan(key_pred) & np.isnan(key_gt)
     correct = both_na_mask.sum()
     if mode == "strict":
-        correct += np.isclose(key_pred, key_gt).sum()  # isclose due to float values
+        correct += np.isclose(key_pred.round(), key_gt.round()).sum()  # isclose due to float values
     elif mode == "tolerant":
         correct += np.isclose(key_pred, key_gt, rtol=.1, atol=1).sum()
     elif mode == "graceful":
         base_unit = np.vectorize(lambda x: x.rstrip("0"))
-        correct = np.equal(base_unit(key_pred.astype(int).astype(str)), base_unit(key_gt.astype(int).astype(str))).sum()
+        correct = np.equal(base_unit(key_pred.round().astype(int).astype(str)), base_unit(key_gt.round().astype(int).astype(str))).sum()
     else:
         raise ValueError("mode must be strict, tolerant or graceful")
     

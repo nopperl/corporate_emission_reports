@@ -1,1 +1,1 @@
-{"mistral": {"context_size": 32768, "model_path": "../models/Mistral-7B-Instruct-v0.2"}, "openchat": {"context_size": 8192, "model_path": "../models/openchat-3.5-0106"}, "qwen": {"context_size": 8192, "model_path": "../models/Qwen-1_8B-Chat"}}
+{"mistral": {"context_size": 32768, "model_path": "models/Mistral-7B-Instruct-v0.2"}, "openchat": {"context_size": 8192, "model_path": "models/openchat-3.5-0106"}, "qwen": {"context_size": 8192, "model_path": "models/Qwen-1_8B-Chat"}, "mixtral": {"context_size": 32768, "model_path": "models/Mixtral-8x7B-Instruct-v0.1"}}
