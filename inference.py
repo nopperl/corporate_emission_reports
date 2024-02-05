@@ -10,9 +10,9 @@ from subprocess import check_output
 from urllib.request import urlretrieve
 from urllib.parse import urlparse
 
-from pydantic_types import Emissions, pydantic_model_to_grammar
-from download_documents import download_document
-from extraction import extract_chunks_from_document
+from corporate_emission_reports.pydantic_types import Emissions, pydantic_model_to_grammar
+from corporate_emission_reports.download_documents import download_document
+from corporate_emission_reports.extraction import extract_chunks_from_document
 
 from lmformatenforcer import JsonSchemaParser
 from lmformatenforcer.integrations.transformers import build_transformers_prefix_allowed_tokens_fn

@@ -2,7 +2,7 @@ from typing import List, Optional, Type
 
 from pydantic import BaseModel, ConfigDict, conset
 
-from json_schema_to_grammar import SchemaConverter
+from corporate_emission_reports.json_schema_to_grammar import SchemaConverter
 
 
 class Emissions(BaseModel):

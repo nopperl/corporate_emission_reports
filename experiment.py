@@ -6,9 +6,8 @@ from os import makedirs
 from os.path import basename, normpath, isfile, join, splitext
 from traceback import print_exc
 
-from pydantic_types import Emissions
-
-from inference import extract_emissions
+from corporate_emission_reports.inference import extract_emissions
+from corporate_emission_reports.pydantic_types import Emissions
 
 
 def process_documents(documents_dir="pdfs", prompt_template="prompts/templates/simple.jsonl", model_path="models/Mistral-7B-Instruct-v0.2", model_context_size=32768, outputs_dir="outputs", generated_prompts_dir="prompts/generated", grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=64, max_group_window_size=1024, lora=None):

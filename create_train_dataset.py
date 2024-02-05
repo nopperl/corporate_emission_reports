@@ -8,8 +8,8 @@ from typing import Optional
 import pandas as pd
 import pyarrow.parquet as pq
 
-from extraction import extract_chunks_from_document
-from pydantic_types import Emissions
+from corporate_emission_reports.extraction import extract_chunks_from_document
+from corporate_emission_reports.pydantic_types import Emissions
 
 
 def Int64_to_optional(v: pd.Int64Dtype) -> Optional[int]:

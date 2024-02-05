@@ -20,7 +20,7 @@ Install the environment using [conda](https://docs.conda.io/en/latest/):
 
     conda env create --file environment.yaml
     conda activate emissions
-    pip install -r requirements.txt
+    pip install -e .
     git lfs install
 
 The system uses the [llama.cpp](https://github.com/ggerganov/llama.cpp) `main` binary directly to utilize [self-extend](https://github.com/datamllab/LongLM). For this, llama.cpp has to be built:
