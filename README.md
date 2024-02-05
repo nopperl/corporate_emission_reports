@@ -1,5 +1,6 @@
 # Extracting Greenhouse Gas Emission Values from Corporate Sustainability Reports
 
+  * Web demo: https://huggingface.co/spaces/nopperl/emission-extractor
   * Evaluation dataset: https://huggingface.co/datasets/nopperl/corporate-emission-reports
   * Finetuning dataset: https://huggingface.co/datasets/nopperl/sustainability-report-emissions
     * Instruction-style JSONL: https://huggingface.co/datasets/nopperl/sustainability-report-emissions-instruction-style
