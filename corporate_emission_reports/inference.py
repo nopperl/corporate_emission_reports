@@ -26,7 +26,7 @@ def try_download_document(document) -> Optional[str]:
      return urlretrieve(document)[0]
 
 
-def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_context_size=32768, grammar_file="", seed=123, max_group_neighbour_size=16, max_group_window_size=1024, lora=None):
+def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_context_size=32768, grammar_file="", seed=123, max_group_neighbour_size=16, max_group_window_size=1024, lora=None, model_name="ggml-model-f16.gguf"):
     context_size = prompt_token_len + 120
     # Enable self-extend if the prompt does not fit into the models context size
     if context_size > model_context_size: 
@@ -37,7 +37,7 @@ def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_con
         group_window_size = 512
     env_vars = os.environ.copy()
     env_vars.update({
-        "MODEL_PATH": join(model_path, "ggml-model-f16.gguf"),
+        "MODEL_PATH": join(model_path, model_name),
         "CONTEXT_SIZE": str(context_size),
         "PROMPT_FILE": prompt_file,
         "SEED": str(seed),
@@ -47,9 +47,9 @@ def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_con
     })
     if lora:
         env_vars["LORA"] = lora
-        script = "inference-llamacpp-lora.sh"
+        script = join(dirname(__file__), "scripts/inference-llamacpp-lora.sh")
     else:
-        script = "inference-llamacpp.sh"
+        script = join(dirname(__file__), "scripts/inference-llamacpp.sh")
     result = check_output(["sh", script], env=env_vars)
     output = result.decode()
     # Strip eos token if printed
@@ -59,13 +59,13 @@ def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_con
     return Emissions.model_validate_json(output, strict=True)
 
 
-def inference_hf(prompt_text, model_path, tokenizer, seed=123, max_group_neighbour_size=16, max_group_window_size=1024, lora=None):
+def inference_hf(prompt_text, model_path, tokenizer, seed=123, max_group_neighbour_size=16, max_group_window_size=1024, lora=None, **model_kwargs):
     device_map = "auto" if torch.cuda.is_available() else None
     if not lora:
-        model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, low_cpu_mem_usage=True, device_map=device_map)
+        model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, device_map=device_map, **model_kwargs)
     else:
         from peft import AutoPeftModelForCausalLM
-        model = AutoPeftModelForCausalLM.from_pretrained(lora, trust_remote_code=True, low_cpu_mem_usage=True, device_map=device_map)
+        model = AutoPeftModelForCausalLM.from_pretrained(lora, trust_remote_code=True, device_map=device_map, **model_kwargs)
     prompt_tokenized = tokenizer.encode(prompt_text, return_tensors="pt").to(model.device)
     parser = JsonSchemaParser(Emissions.model_json_schema())
     prefix_function = build_transformers_prefix_allowed_tokens_fn(tokenizer, parser)
@@ -97,7 +97,7 @@ def construct_prompt(document, tokenizer, prompt_template=None, extraction_mode=
     return prompt_text
 
 
-def extract_emissions(document, model_path, prompt_template=None, model_context_size=32768, prompt_output_path=None, grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=8, max_group_window_size=2048, lora=None, engine="llama.cpp") -> Emissions:
+def extract_emissions(document, model_path, prompt_template=None, model_context_size=32768, prompt_output_path=None, grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=8, max_group_window_size=2048, lora=None, engine="llama.cpp", **engine_args) -> Emissions:
     set_seed(seed)
     if not isfile(document):
         document = try_download_document(document)
@@ -113,6 +113,7 @@ def extract_emissions(document, model_path, prompt_template=None, model_context_
 
     if engine == "llama.cpp":
         grammar = pydantic_model_to_grammar(Emissions)
+        os.makedirs(grammars_dir, exist_ok=True)
         grammar_path = f"{grammars_dir}/emissions_json.gbnf"
         with open(grammar_path, "w") as f:
             f.write(grammar)
@@ -127,9 +128,9 @@ def extract_emissions(document, model_path, prompt_template=None, model_context_
         if "QWenTokenizer" in str(type(tokenizer)):
             token_length = int(token_length * 1.2)  # HF and llama.cpp use tokenizers that produce different lengths for QWen
             eos_token = "[PAD151643]"  # llama.cpp tokenizer uses this as eos
-        emissions = inference_llamacpp(token_length, prompt_output_path, model_path, eos_token, model_context_size=model_context_size, grammar_file=grammar_path, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size, lora=lora)
+        emissions = inference_llamacpp(token_length, prompt_output_path, model_path, eos_token, model_context_size=model_context_size, grammar_file=grammar_path, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size, lora=lora, **engine_args)
     elif engine == "hf":
-        emissions = inference_hf(prompt, model_path, tokenizer, seed=seed, lora=lora)
+        emissions = inference_hf(prompt, model_path, tokenizer, seed=seed, lora=lora, **engine_args)
     else:
         raise ValueError(f"No inference function defined for engine {engine}")
     return emissions

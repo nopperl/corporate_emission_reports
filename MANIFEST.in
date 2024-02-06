@@ -1,1 +1,2 @@
 include corporate_emission_reports/prompt-templates/simple.txt
+include corporate_emission_reports/scripts/*.sh
