@@ -10,7 +10,7 @@ from corporate_emission_reports.inference import extract_emissions
 from corporate_emission_reports.pydantic_types import Emissions
 
 
-def process_documents(documents_dir="pdfs", prompt_template="prompts/templates/simple.jsonl", model_path="models/Mistral-7B-Instruct-v0.2", model_context_size=32768, outputs_dir="outputs", generated_prompts_dir="prompts/generated", grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=64, max_group_window_size=1024, lora=None):
+def process_documents(documents_dir="pdfs", prompt_template=None, model_path="models/Mistral-7B-Instruct-v0.2", model_context_size=32768, outputs_dir="outputs", generated_prompts_dir="prompts/generated", grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=64, max_group_window_size=1024, lora=None):
     model_name = normpath(model_path).split('/')[-1]
     output_dir = join(outputs_dir, model_name)
     if lora:
@@ -49,7 +49,7 @@ def main():
     parser.add_argument("--model_path", default="models/Mistral-7B-Instruct-v0.2", help="Path to a directory containing the GGUF model and huggingface tokenizer. Mutually exclusive with --model.")
     parser.add_argument("--model_context_size", default=32768, help="The context size of the model. Can be retrieved by inspecting the specific model or config files. Must be used together with --model_path. Mutually exclusive with --model.")
     parser.add_argument("--model", default="", help=f"Given the model name, loads the model_path and model_context_size automatically from the {model_config_path} file. Mutually exclusive with --model_path and --model_context_size.")
-    parser.add_argument("--prompt_template", default="prompts/templates/simple.jsonl", help="The prompt template in ChatML format to use for prompt generation.")
+    parser.add_argument("--prompt_template", default=None, help="The plaintext prompt template to use for prompt contruction. Falls back to prompt-templates/simple.txt.")
     parser.add_argument("--output_dir", default="outputs", help="saves the extraction output JSON files to this dir")
     parser.add_argument("--prompt_output_dir", default="prompts/generated", help="Saves the input prompts to this dir")
     parser.add_argument("--grammars_dir", default="grammars", help="Grammar is stored in this dir. Set to /tmp if persistance not needed.")

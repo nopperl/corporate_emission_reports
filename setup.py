@@ -9,5 +9,6 @@ setup(
     version="0.0.3",
     packages=find_packages(),
     install_requires=requirements,
+    include_package_data=True,
 )
 

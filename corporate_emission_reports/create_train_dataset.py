@@ -23,7 +23,7 @@ def row_to_emissions(row):
     return emissions.model_dump_json()
 
 
-def create_train_dataset(dataset_path="data/emissions_sft.jsonl", predictions_source="output_train/Mixtral-8x7B-Instruct-v0.1", generated_prompts_dir="prompts/generated/Mixtral-8x7B-Instruct-v0.1", force_prompt_regeneration=False, prompt_template="prompts/templates/simple.jsonl", documents_dir="pdfs_train", extraction_mode="xhtml"):
+def create_train_dataset(dataset_path="data/emissions_sft.jsonl", predictions_source="output_train/Mixtral-8x7B-Instruct-v0.1", generated_prompts_dir="prompts/generated/Mixtral-8x7B-Instruct-v0.1", force_prompt_regeneration=False, prompt_template=None, documents_dir="pdfs_train", extraction_mode="xhtml"):
     stub_content = '{"scope_1":-1,"scope_2":-1,"scope_3":-1,"sources":[-1]}'
     if isfile(dataset_path):
         remove(dataset_path)
@@ -77,7 +77,7 @@ def main():
     parser.add_argument("--predictions_source", default="output_train/Mixtral-8x7B-Instruct-v0.1", help="Where to get the model predictions for the `completion` field from. Can be directory of json files containing the prediction for each report or a parquet file containing the `id`, `scope_1`, `scope_2`, `scope_3` and `sources` fields for all reports.")
     parser.add_argument("--generated_prompts_dir", default="prompts/generated/Mixtral-8x7B-Instruct-v0.1", help="The directory containing the cached prompts from the output generation. If set, uses available cached prompts instead of regenerating them. NOTE: only use this if the Mistral/Llama-2 instruct template was used for the cached prompts. Not used if --force_prompt_regeneration is set.")
     parser.add_argument("--force_prompt_regeneration", action="store_true", help="Whether to ignore cached generated prompt and regenerate the prompts. NOTE: this must be set if the Mistral/Llama-2 instruct template was not used for the cached prompts.")
-    parser.add_argument("--prompt_template", default="prompts/templates/simple.jsonl", help="The prompt template in ChatML format to use for prompt generation. This must be set if --force_prompt_regeneration is set.")
+    parser.add_argument("--prompt_template", default=None, help="The prompt template in ChatML format to use for prompt generation. This must be set if --force_prompt_regeneration is set.")
     parser.add_argument("--documents_dir", default="pdfs_train", help="Directory containing the documents from which emission values were extracted. Used for promp generation. This must be set if --force_prompt_regeneration is set.")
     parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"], help="Whether to extract plain text or semi-semantic xhtml from document pages. This must be set if --force_prompt_regeneration is set.")
     args = parser.parse_args()

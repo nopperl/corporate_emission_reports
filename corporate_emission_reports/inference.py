@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from json import load, loads
 from math import ceil
 import os
-from os.path import isfile, join
+from os.path import dirname, isfile, join
 from tempfile import NamedTemporaryFile
 from typing import List, Optional, Union
 from subprocess import check_output
@@ -78,7 +78,9 @@ def inference_hf(prompt_text, model_path, tokenizer, seed=123, max_group_neighbo
     return Emissions.model_validate_json(output, strict=True)
     
 
-def construct_prompt(document, tokenizer, prompt_template="prompts/templates/simple.txt", extraction_mode="xhtml", return_tokenized=False):
+def construct_prompt(document, tokenizer, prompt_template=None, extraction_mode="xhtml", return_tokenized=False):
+    if not prompt_template:
+        prompt_template = join(dirname(__file__), "prompt-templates/simple.txt")
     with open(prompt_template, "r") as prompt_file:
         instruction = prompt_file.read()
     user_message = extract_chunks_from_document(document, mode=extraction_mode)
@@ -95,7 +97,7 @@ def construct_prompt(document, tokenizer, prompt_template="prompts/templates/sim
     return prompt_text
 
 
-def extract_emissions(document, model_path, prompt_template="prompts/templates/simple.txt", model_context_size=32768, prompt_output_path=None, grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=8, max_group_window_size=2048, lora=None, engine="llama.cpp") -> Emissions:
+def extract_emissions(document, model_path, prompt_template=None, model_context_size=32768, prompt_output_path=None, grammars_dir="grammars", extraction_mode="xhtml", seed=123, max_group_neighbour_size=8, max_group_window_size=2048, lora=None, engine="llama.cpp") -> Emissions:
     set_seed(seed)
     if not isfile(document):
         document = try_download_document(document)
@@ -139,7 +141,7 @@ def main():
     parser.add_argument("--model_path", default="models/Mistral-7B-Instruct-v0.2", help="Path to a directory containing the GGUF model and huggingface tokenizer. Mutually exclusive with --model.")
     parser.add_argument("--model_context_size", default=32768, help="The context size of the model. Can be retrieved by inspecting the specific model or config files. Must be used together with --model_path. Mutually exclusive with --model.")
     parser.add_argument("--model", default="", help=f"Given the model name, loads the model_path and model_context_size automatically from the {model_config_path} file. Mutually exclusive with --model_path and --model_context_size.")
-    parser.add_argument("--prompt_template", default="prompts/templates/simple.txt", help="The prompt template in ChatML format to use for prompt generation.")
+    parser.add_argument("--prompt_template", default=None, help="The plaintext prompt template to use for prompt contruction. Falls back to prompt-templates/simple.txt.")
     parser.add_argument("--prompt_output_path", default="", help="If specified, saves the input prompt to this file")
     parser.add_argument("--grammars_dir", default="grammars", help="Grammar is stored in this dir. Set to /tmp if persistance not needed.")
     parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"], help="Whether to extract plain text or semi-semantic xhtml from document pages.")
