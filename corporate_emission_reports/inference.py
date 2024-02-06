@@ -62,10 +62,10 @@ def inference_llamacpp(prompt_token_len, prompt_file, model_path, eos, model_con
 def inference_hf(prompt_text, model_path, tokenizer, seed=123, max_group_neighbour_size=16, max_group_window_size=1024, lora=None):
     device_map = "auto" if torch.cuda.is_available() else None
     if not lora:
-        model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, device_map=device_map)
+        model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, low_cpu_mem_usage=True, device_map=device_map)
     else:
         from peft import AutoPeftModelForCausalLM
-        model = AutoPeftModelForCausalLM.from_pretrained(lora, device_map=device_map)
+        model = AutoPeftModelForCausalLM.from_pretrained(lora, trust_remote_code=True, low_cpu_mem_usage=True, device_map=device_map)
     prompt_tokenized = tokenizer.encode(prompt_text, return_tensors="pt").to(model.device)
     parser = JsonSchemaParser(Emissions.model_json_schema())
     prefix_function = build_transformers_prefix_allowed_tokens_fn(tokenizer, parser)
