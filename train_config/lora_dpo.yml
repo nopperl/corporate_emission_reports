@@ -7,17 +7,16 @@ load_in_8bit: false
 load_in_4bit: false
 strict: false
 
+rl: dpo
+
 datasets:
-  - path: nopperl/sustainability-report-emissions-instruction-style
+  - path: nopperl/sustainability-report-emissions-dpo
     type:
-      system_prompt: ""
-      field_instruction: prompt
-      field_output: completion
-      format: "[INST] {instruction} [/INST] I have extracted the Scope 1, 2 and 3 emission values from the document, converted them into metric tons and put them into the following json object:\n```json\n"
-      no_input_format: "[INST] {instruction} [/INST] I have extracted the Scope 1, 2 and 3 emission values from the document, converted them into metric tons and put them into the following json object:\n```json\n"
+      prompt_format: "[INST] {prompt} [/INST] I have extracted the Scope 1, 2 and 3 emission values from the document, converted them into metric tons and put them into the following json object:\n```json\n"
+    split: train
 dataset_prepared_path:
 val_set_size: 0
-output_dir: ./emissions-extraction-lora
+output_dir: ./emissions-extraction-lora-dpo
 
 adapter: lora
 lora_model_dir:
@@ -35,7 +34,7 @@ lora_target_modules:
   - k_proj
   - o_proj
 
-sequence_len: 32768
+sequence_len: 16384
 sample_packing: false
 pad_to_sequence_len: false
 eval_sample_packing: false
@@ -48,7 +47,7 @@ wandb_log_model:
 
 gradient_accumulation_steps: 8
 micro_batch_size: 1
-num_epochs: 4
+num_epochs: 1
 optimizer: adamw_bnb_8bit
 lr_scheduler: cosine
 learning_rate: 0.00002
@@ -71,9 +70,9 @@ warmup_steps: 10
 evals_per_epoch: 0
 eval_table_size:
 eval_table_max_new_tokens: 128
-saves_per_epoch: 1
+save_steps: 100
 debug:
-deepspeed: train_config/zero3_bf16.json
+deepspeed: train_configs/zero3_bf16.json
 weight_decay: 0.0
 fsdp:
 fsdp_config:

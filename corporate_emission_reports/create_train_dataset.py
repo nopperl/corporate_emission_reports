@@ -1,8 +1,9 @@
 from argparse import ArgumentParser
 from glob import iglob
 from json import load, loads, dumps
-from os import remove
-from os.path import basename, normpath, isdir, isfile, join, splitext
+from os import makedirs, remove
+from os.path import basename, dirname, normpath, isdir, isfile, join, splitext
+from random import random, randint
 from typing import Optional
 
 import pandas as pd
@@ -23,10 +24,14 @@ def row_to_emissions(row):
     return emissions.model_dump_json()
 
 
-def create_train_dataset(dataset_path="data/emissions_sft.jsonl", predictions_source="output_train/Mixtral-8x7B-Instruct-v0.1", generated_prompts_dir="prompts/generated/Mixtral-8x7B-Instruct-v0.1", force_prompt_regeneration=False, prompt_template=None, documents_dir="pdfs_train", extraction_mode="xhtml"):
+def rand_emission():
+    return int(random() * (10 ** randint(0, 6)))
+
+def create_train_dataset(dataset_path="data/emissions_sft.jsonl", dataset_type="sft", predictions_source="output_train/Mixtral-8x7B-Instruct-v0.1", generated_prompts_dir="prompts/generated/Mixtral-8x7B-Instruct-v0.1", force_prompt_regeneration=False, prompt_template=None, documents_dir="pdfs_train", extraction_mode="xhtml"):
     stub_content = '{"scope_1":-1,"scope_2":-1,"scope_3":-1,"sources":[-1]}'
     if isfile(dataset_path):
         remove(dataset_path)
+    makedirs(dirname(dataset_path), exist_ok=True)
     
     if splitext(predictions_source)[1] == ".parquet":
         table = pq.read_table(predictions_source, columns=["id", "scope_1", "scope_2", "scope_3", "sources"])
@@ -66,14 +71,23 @@ def create_train_dataset(dataset_path="data/emissions_sft.jsonl", predictions_so
             if not user_message:
                 continue
             prompt += "\n" + user_message[:-1]
-        data = {"prompt": prompt, "completion": response}
+        data = {"prompt": prompt}
+        if dataset_type == "sft":
+            data["completion"] = response
+        elif dataset_type == "dpo":
+            data["chosen"] = response
+            wrong_completion = Emissions(scope_1=rand_emission(), scope_2=rand_emission(), scope_3=rand_emission(), sources=[randint(0, 300)]*randint(1, 5))
+            data["rejected"] = wrong_completion.model_dump_json()
+        else:
+            raise ValueError("dataset type must be sft or dpo")
         with open(dataset_path, "a") as f:
             f.write(dumps(data) + "\n")
 
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--dataset_path", default="data/emissions_sft.jsonl", help="Dataset will be saved to this path.")
+    parser.add_argument("--dataset_path", default="data_train/emissions_sft.jsonl", help="Dataset will be saved to this path.")
+    parser.add_argument("--type", default="sft", choices=["sft", "dpo"])
     parser.add_argument("--predictions_source", default="output_train/Mixtral-8x7B-Instruct-v0.1", help="Where to get the model predictions for the `completion` field from. Can be directory of json files containing the prediction for each report or a parquet file containing the `id`, `scope_1`, `scope_2`, `scope_3` and `sources` fields for all reports.")
     parser.add_argument("--generated_prompts_dir", default="prompts/generated/Mixtral-8x7B-Instruct-v0.1", help="The directory containing the cached prompts from the output generation. If set, uses available cached prompts instead of regenerating them. NOTE: only use this if the Mistral/Llama-2 instruct template was used for the cached prompts. Not used if --force_prompt_regeneration is set.")
     parser.add_argument("--force_prompt_regeneration", action="store_true", help="Whether to ignore cached generated prompt and regenerate the prompts. NOTE: this must be set if the Mistral/Llama-2 instruct template was not used for the cached prompts.")
@@ -81,7 +95,7 @@ def main():
     parser.add_argument("--documents_dir", default="pdfs_train", help="Directory containing the documents from which emission values were extracted. Used for promp generation. This must be set if --force_prompt_regeneration is set.")
     parser.add_argument("--extraction_mode", default="xhtml", choices=["xhtml", "text"], help="Whether to extract plain text or semi-semantic xhtml from document pages. This must be set if --force_prompt_regeneration is set.")
     args = parser.parse_args()
-    create_train_dataset(dataset_path=args.dataset_path, predictions_source=args.predictions_source, generated_prompts_dir=args.generated_prompts_dir, force_prompt_regeneration=args.force_prompt_regeneration, prompt_template=args.prompt_template, documents_dir=args.documents_dir, extraction_mode=args.extraction_mode)
+    create_train_dataset(dataset_path=args.dataset_path, dataset_type=args.type, predictions_source=args.predictions_source, generated_prompts_dir=args.generated_prompts_dir, force_prompt_regeneration=args.force_prompt_regeneration, prompt_template=args.prompt_template, documents_dir=args.documents_dir, extraction_mode=args.extraction_mode)
 
 
 if __name__ == "__main__":
