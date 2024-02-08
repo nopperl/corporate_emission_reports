@@ -125,9 +125,10 @@ def extract_emissions(document, model_path, prompt_template=None, model_context_
         prompt_tokenized = tokenizer.encode(prompt)
         token_length = len(prompt_tokenized)
         eos_token = tokenizer.eos_token
-        if "QWenTokenizer" in str(type(tokenizer)):
-            token_length = int(token_length * 1.2)  # HF and llama.cpp use tokenizers that produce different lengths for QWen
-            eos_token = "[PAD151643]"  # llama.cpp tokenizer uses this as eos
+        if type(tokenizer).__name__.lower().startswith("qwen"):
+            token_length = int(token_length * 1.2)  # HF and llama.cpp use tokenizers that produce different lengths for QWen 1.0 and 2.0
+            if "QWenTokenizer" in str(type(tokenizer)):
+                eos_token = "[PAD151643]"  # llama.cpp tokenizer uses this as eos for Qwen-1.0
         emissions = inference_llamacpp(token_length, prompt_output_path, model_path, eos_token, model_context_size=model_context_size, grammar_file=grammar_path, seed=seed, max_group_neighbour_size=max_group_neighbour_size, max_group_window_size=max_group_window_size, lora=lora, **engine_args)
     elif engine == "hf":
         emissions = inference_hf(prompt, model_path, tokenizer, seed=seed, lora=lora, **engine_args)
