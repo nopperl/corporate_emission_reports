@@ -25,7 +25,7 @@ Data about corporate greenhouse gas emissions is usually published only as part 
 ### Contributions
 
   * A manually-created evaluation dataset (N=100),
-  * a synthetic finetuning dataset (N=3221),
+  * a synthetic finetuning dataset (N=3233),
   * an evaluation of multiple models (1.8B-45B) covering prompt strategies, numerical issues and self extend,
   * an evaluation of different finetuning configurations,
   * a [finetuned Mistral model](https://huggingface.co/nopperl/emissions-extraction-lora) which nearly matches and partially exceeds Mixtral on this task, and
@@ -36,7 +36,7 @@ This project benchmarks and finetunes large language models for the task mention
 
 For this purpose, two datasets are created:
   * an evaluation dataset of 100 sustainability reports from geographically-diverse corporations and manually-extracted emission values, and
-  * a finetuning dataset of 3221 different geographically-diverse sustainability reports and emission values extracted by [Mixtral-8x7B-Instruct-v0.1](https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1).
+  * a finetuning dataset of 3233 different geographically-diverse sustainability reports and emission values extracted by [Mixtral-8x7B-Instruct-v0.1](https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1).
 
 The former dataset is used to benchmark the models listed in the below table. The focus is on <=7B models as they require less resources. [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2) is used as SotA model of this class. To evaluate how a similar model with lower context size performs when using [self-extend](https://github.com/datamllab/LongLM), [openchat-3.5-0106](https://huggingface.co/openchat/openchat-3.5-0106) is also tested (7B models with even lower context size of 2048 did not perform well enough in preliminary experiments). Furthermore, to investigate how large the parameter size needs to be for this task, the significantly smaller Qwen-1.8B-Chat model is also evaluated (similar models such as [phi-2](https://huggingface.co/microsoft/phi-2) or [stablelm-zephyr-3b](https://huggingface.co/stabilityai/stablelm-zephyr-3b) did not produce useful output in preliminary experiments). To ascertain the upper limit, the significantly larger Mixtral is also evaluated. Mixtral is used as it performed significantly better than other >45B models (Llama-2-70B, Qwen-72B, goliath, deepseek-llm-67b) in preliminary experiments (a full evaluation of larger models was impossible due to resource constrains). Unsurprisingly, Mixtral performs significantly better than the others models under evaluation. To investigate whether this gap can be closed, the best performing "small" model Mistral is finetuned (using LoRA) on the latter dataset of Mixtral outputs on different sustainability reports.
 
@@ -178,6 +178,14 @@ scope 1 | scope 2 | scope 3 | avg of scopes | sources | learning rate | epochs
 65 | 62 | 69 | _65_ | 77 | 2e-5 | 3
 67 | 59 | 68 | _65_ | 69 | 2e-5 | 4
 
+#### Qwen-1.8B
+
+As the Qwen-1.8B model is even easier to deploy than Mistral-7B, it was also investigated whether finetuning it increases its performance to a sufficient level. [Qwen1.5-1.8B-Chat](https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat) was used as base model due to its better support. The below table shows that the performance of the finetuned model is better, but still far from sufficient.
+
+scope 1 | scope 2 | scope 3 | avg of scopes | sources | learning rate | epochs | type
+--- | --- | --- | --- | --- | --- | --- | ---
+12 | 8 | 5 | _8_ | 3 |  - | - | qwen-1.8B
+3 | 5 | 22 | _10_ | 6 | 2e-4 | 4 | qwen-1.8B lora
 
 ### Additional findings
 
@@ -379,6 +387,10 @@ It makes sense to adjust the training configuration based on the system. A diffe
 Instead, to finetune a LoRA for the [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2) base model using DPO on the [sustainability-report-emissions-dpo](https://huggingface.co/datasets/nopperl/sustainability-report-emissions-dpo) dataset:
 
     accelerate launch -m axolotl.cli.train train_config/lora_dpo.yml
+
+To finetune [Qwen1.5-1.8B-Chat](https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat) instead of [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2):
+
+    accelerate launch -m axolotl.cli.train train_config/lora_sft_qwen.yml
 
 The LoRA is stored in safetensors format at `emissions-extraction-lora` and can be converted into GGUF format consumable by llama.cpp:
 
