@@ -40,12 +40,15 @@ For this purpose, two datasets are created:
 
 The former dataset is used to benchmark the models listed in the below table. The focus is on <=7B models as they require less resources. [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2) is used as SotA model of this class. To evaluate how a similar model with lower context size performs when using [self-extend](https://github.com/datamllab/LongLM), [openchat-3.5-0106](https://huggingface.co/openchat/openchat-3.5-0106) is also tested (7B models with even lower context size of 2048 did not perform well enough in preliminary experiments). Furthermore, to investigate how large the parameter size needs to be for this task, the significantly smaller Qwen-1.8B-Chat model is also evaluated (similar models such as [phi-2](https://huggingface.co/microsoft/phi-2) or [stablelm-zephyr-3b](https://huggingface.co/stabilityai/stablelm-zephyr-3b) did not produce useful output in preliminary experiments). To ascertain the upper limit, the significantly larger Mixtral is also evaluated. Mixtral is used as it performed significantly better than other >45B models (Llama-2-70B, Qwen-72B, goliath, deepseek-llm-67b) in preliminary experiments (a full evaluation of larger models was impossible due to resource constrains). Unsurprisingly, Mixtral performs significantly better than the others models under evaluation. To investigate whether this gap can be closed, the best performing "small" model Mistral is finetuned (using LoRA) on the latter dataset of Mixtral outputs on different sustainability reports.
 
+UPDATE: evaluation with miqu was added.
+
 model | param size | context length
 --- | --- | ---
 [Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2) | 7B | 32768
 [openchat-3.5-0106](https://huggingface.co/openchat/openchat-3.5-0106) | 7B | 8192
 [Qwen-1.8B-Chat](https://huggingface.co/Qwen/Qwen-1_8B-Chat) | 1.8B | 8192
 [Mixtral-8x7B-Instruct-v0.1](https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1) | 45B | 32768
+[miqu-1-70b](https://huggingface.co/miqudev/miqu-1-70b) | 70B | 32764
 
 
 The prompt consists of a carefully crafted instruction (see `corporate_emission_reports/prompt-templates/simple.txt`) and semi-structured XHTML text extracted from sustainability reports using [PyMuPDF](https://pymupdf.readthedocs.io/). Since the reports are long, a RAG-like system is used to insert the extracted text. First, the report is split into semantical chunks, in this case pages (i.e. each page is a chunk). Then, each page that contains relevant terms such as `scope 1` is added to the prompt. This setup is simple but fast and performs well in practice.
@@ -74,6 +77,7 @@ scope 1 | scope 2 | scope 3 | avg of scopes | sources | model
 49 | 34 | 54 | _46_ | 53 | mistral
 33 | 31 | 56 | _40_ | 48 | openchat
 12 | 8 | 5 | _8_ | 3 | qwen-1.8B
+69 | 72 | 57 | _66_ | 74 | miqu
 70 | 71 | 69 | _69_ | 64 | mixtral
 65 | 62 | 69 | _65_ | 77 | lora
 
