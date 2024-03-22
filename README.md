@@ -6,6 +6,8 @@
     * Instruction-style JSONL: https://huggingface.co/datasets/nopperl/sustainability-report-emissions-instruction-style
     * Preferences JSONL (for DPO): https://huggingface.co/datasets/nopperl/sustainability-report-emissions-dpo
   * Finetuned model: https://huggingface.co/nopperl/emissions-extraction-lora
+  * Slides: [report/presentation.pdf](report/presentation.pdf)
+  * Report: [report/report.pdf](report/report.pdf)
 
 Experiments on training and evaluating language models on the long-context structured information extraction task of extracting greenhouse gas emissions from corporate sustainability reports. The finetuned [emissions-extraction-lora](https://huggingface.co/nopperl/emissions-extraction-lora) 7B model reaches an emission value extraction accuracy of 65\% (up from 46\% of the base model) and a source citation accuracy of 77\% (base model: 53\%) on the [corporate-emission-reports](https://huggingface.co/datasets/nopperl/corporate-emission-reports) dataset, matching the performance of the 45B [Mixtral-8x7B-Instruct-v0.1](https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1).
 
